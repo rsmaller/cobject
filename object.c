@@ -12,8 +12,6 @@
 
 #define expand(x) x
 
-#define checkVoid(x) x == void
-
 #define decorate(returntype, function, identifier, ...)\
     returntype expand(concat(function, identifier)) (void) {\
         return function(__VA_ARGS__);\
