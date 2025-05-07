@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "sort.h"
+#include <stdint.h>
 
 #define concat(x, y) x ## y
 
@@ -67,6 +68,14 @@
 
     #define constructObject(arraySize) constructObjectInternal(arraySize, __COUNTER__)
 #endif
+
+#define type_size1 int8_t
+#define type_size2 int16_t
+#define type_size4 int32_t
+#define type_size8 int64_t
+
+#define sizeCast(item, size) (type_size##size)item
+#define sizeCastPointer(item, size) (type_size##size *)item
 
 typedef struct object {
     char *id;
@@ -150,6 +159,10 @@ void sortFunc(object *self) {
 }
 
 object *internalObjectAllocator(size_t arraySize) {
+    if (!arraySize) {
+        fprintf(stderr, "Array size must be positive.\n");
+        exit(1);
+    }
     object *returnValue = (object *)malloc(sizeof(object));
     returnValue -> array = (int *)calloc(arraySize, sizeof(int));
     returnValue -> size = arraySize;
