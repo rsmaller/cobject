@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "sort.h"
 
 #define concat(x, y) x ## y
 
@@ -43,7 +44,11 @@
     #define constructObjectInternal(arraySize, identifier) ({\
         object returnObject = *(internalObjectAllocator(arraySize));\
         decorate(size_t, lengthFunc, identifier, &returnObject);\
+        decorate(char *, stringFunc, identifier, &returnObject);\
+        decorate_void(deleteFunc, identifier,  &returnObject);\
+        decorate_void(sortFunc, identifier,  &returnObject);\
         expanded_decorate_void(resizeFunc, identifier, size_t, newArraySize, &returnObject);\
+        expanded_decorate_void(fillFunc, identifier, int, value, &returnObject);\
         expanded_decorate(int *, atFunc, identifier, size_t, index, &returnObject);\
         expanded_decorate(int, getFunc, identifier, size_t, index, &returnObject);\
         double_expanded_decorate_void(setFunc, identifier, size_t, index, int, value, &returnObject);\
@@ -53,6 +58,10 @@
         returnObject.at = expand(concat(atFunc, identifier));\
         returnObject.get = expand(concat(getFunc, identifier));\
         returnObject.set = expand(concat(setFunc, identifier));\
+        returnObject.string = expand(concat(stringFunc, identifier));\
+        returnObject.delete = expand(concat(deleteFunc, identifier));\
+        returnObject.sort = expand(concat(sortFunc, identifier));\
+        returnObject.fill = expand(concat(fillFunc, identifier));\
         returnObject;\
     })
 
@@ -64,10 +73,15 @@ typedef struct object {
     int *array;
     size_t size;
     size_t (*length)(void);
+    char *(*string)(void);
+    char *stringAllocator;
     void (*resize)(size_t newArraySize);
     int *(*at)(size_t index);
     void (*set)(size_t index, int value);
+    void (*fill)(int value);
     int (*get)(size_t index);
+    void (*sort)(void);
+    void (*delete)(void);
 } object;
 
 size_t lengthFunc(object *self) {
@@ -76,7 +90,7 @@ size_t lengthFunc(object *self) {
 
 void resizeFunc(object *self, size_t newArraySize) {
     self -> size = newArraySize;
-    self -> array = (int *)realloc(self -> array, newArraySize);
+    self -> array = (int *)realloc(self -> array, newArraySize * sizeof(int));
     return;
 }
 
@@ -97,24 +111,60 @@ void setFunc(object *self, size_t index, int value) {
     return;
 }
 
+void fillFunc(object *self, int value) {
+    for (size_t i=0; i < self -> length(); i++) {
+        self -> set(i, value);
+    }
+    return;
+}
+
+char *stringFunc(object *self) {
+    if (self -> stringAllocator) {
+        free(self -> stringAllocator);
+        self -> stringAllocator = NULL;
+    }
+    char *output = (char *)malloc(self -> size * 12 + 4); // ten digits each, plus comma and space, plus braces and null terminator
+    output[0] = '\0';
+    strcat(output, "{");
+    char buffer[256];
+    for (size_t i = 0; i < self -> size - 1; i++) {
+        sprintf(buffer, "%d, ", self -> array[i]);
+        strcat(output, buffer);
+    }
+    sprintf(buffer, "%d}", self -> array[self -> size - 1]);
+    strcat(output, buffer);
+    self -> stringAllocator = output;
+    return output;
+}
+
+void deleteFunc(object *self) {
+    if (self -> stringAllocator) {
+        free(self -> stringAllocator);
+    }
+    free(self);
+    return;
+}
+
+void sortFunc(object *self) {
+    mergeSort(self -> array, self -> size);
+}
+
 object *internalObjectAllocator(size_t arraySize) {
     object *returnValue = (object *)malloc(sizeof(object));
     returnValue -> array = (int *)calloc(arraySize, sizeof(int));
     returnValue -> size = arraySize;
+    returnValue -> stringAllocator = NULL;
     return returnValue;
 }
 
 int main() {
-    object myObject = constructObject(100);
+    object myObject = constructObject(10);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
-    myObject.resize(150);
+    myObject.resize(15);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
-    object myObject2 = constructObject(200);
-    printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
-    myObject2.resize(250);
-    printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
-    printf("Object %s size: %llu\n", myObject.id, myObject.length());
+    myObject.fill(12);
+    myObject.set(3, 82);
+    myObject.sort();
     printf("Object %s at index 0: %d\n", myObject.id, myObject.get(0));
-    myObject.set(0, 1);
-    printf("Object %s at index 0: %d\n", myObject.id, myObject.get(0));
+    printf("%s\n", myObject.string());
 }
