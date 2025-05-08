@@ -43,6 +43,7 @@
         char *id;\
         type *array;\
         size_t size;\
+        int filledIndex;\
         size_t (*length)(void);\
         char *(*string)(void);\
         char *stringAllocator;\
@@ -68,7 +69,6 @@
         decorate(char *, stringFunc##type, identifier, &returnObject);\
         decorate_void(deleteFunc##type, identifier,  &returnObject);\
         decorate_void(sortFunc##type, identifier,  &returnObject);\
-        expanded_decorate_void(resizeFunc##type, identifier, size_t, newArraySize, &returnObject);\
         expanded_decorate_void(fillFunc##type, identifier, type, value, &returnObject);\
         expanded_decorate_void(pushFunc##type, identifier, type, value, &returnObject);\
         expanded_decorate(type *, atFunc##type, identifier, size_t, index, &returnObject);\
@@ -76,7 +76,6 @@
         double_expanded_decorate_void(setFunc##type, identifier, size_t, index, type, value, &returnObject);\
         returnObject.id = strTokenize(identifier);\
         returnObject.length = expand(concat(lengthFunc##type, identifier));\
-        returnObject.resize = expand(concat(resizeFunc##type, identifier));\
         returnObject.at = expand(concat(atFunc##type, identifier));\
         returnObject.get = expand(concat(getFunc##type, identifier));\
         returnObject.set = expand(concat(setFunc##type, identifier));\
@@ -95,17 +94,7 @@
     TYPESTRUCT(type) \
     \
     size_t lengthFunc##type(type##Object *self) {\
-        return self -> size;\
-    }\
-    \
-    void resizeFunc##type(type##Object *self, size_t newArraySize) {\
-        if (newArraySize == 0) {\
-            fprintf(stderr, "Invalid size factor. Terminating");\
-            exit(1);\
-        }\
-        self -> size = newArraySize;\
-        self -> array = (type *)realloc(self -> array, newArraySize * sizeof(type));\
-        return;\
+        return self -> filledIndex + 1;\
     }\
     \
     type *atFunc##type(type##Object *self, size_t index) {\
@@ -117,17 +106,19 @@
     }\
     \
     void pushFunc##type(type##Object *self, type value) {\
-        self -> size++;\
-        self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
-        self -> array[self -> size - 1] = value;\
+        self -> filledIndex++;\
+        self -> array[self -> length() - 1] = value;\
+        if (self -> filledIndex >= self -> size / 2) {\
+            self -> size *= 2;\
+            self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        }\
     }\
     type popFunc##type(type##Object *self) {\
-        if (!self -> size) {\
+        if (self -> filledIndex < 0) {\
             return 0;\
         }\
-        type returnValue = self -> array[self -> size - 1];\
-        self -> size--;\
-        self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        type returnValue = self -> array[self -> length() - 1];\
+        self -> filledIndex--;\
         return returnValue;\
     }\
     \
@@ -137,6 +128,13 @@
     \
     void setFunc##type(type##Object *self, size_t index, type value) {\
         *atFunc##type(self, index) = value;\
+        if (index > self -> filledIndex) {\
+            self -> filledIndex = index;\
+        }\
+        if (self -> filledIndex >= self -> size / 2) {\
+            self -> size *= 2;\
+            self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        }\
         return;\
     }\
     \
@@ -164,15 +162,15 @@
             free(self -> stringAllocator);\
             self -> stringAllocator = NULL;\
         }\
-        char *output = (char *)malloc(self -> size * 12 + 4);\
+        char *output = (char *)malloc(self -> length() * 12 + 4);\
         output[0] = '\0';\
         strcat(output, "{");\
         char buffer[256];\
-        for (size_t i = 0; i < self -> size - 1; i++) {\
+        for (size_t i = 0; i < self -> length() - 1; i++) {\
             sprintf(buffer, startFormatter, self -> array[i]);\
             strcat(output, buffer);\
         }\
-        sprintf(buffer, endFormatter, self -> array[self -> size - 1]);\
+        sprintf(buffer, endFormatter, self -> array[self -> length() - 1]);\
         strcat(output, buffer);\
         self -> stringAllocator = output;\
         return output;\
@@ -230,17 +228,20 @@
     }\
     \
     void sortFunc##type(type##Object *self) {\
-        mergeSort##type(self -> array, self -> size);\
+        mergeSort##type(self -> array, self -> length());\
     }\
     \
     type##Object internalObjectAllocator##type(size_t arraySize) {\
         if (!arraySize) {\
             fprintf(stderr, "Array size must be positive.\n");\
             exit(1);\
+        } else if (arraySize < 4) {\
+            arraySize = 4;\
         }\
         type##Object returnValue;\
         returnValue.array = (type *)calloc(arraySize, sizeof(type));\
         returnValue.size = arraySize;\
+        returnValue.filledIndex = -1;\
         returnValue.stringAllocator = NULL;\
         return returnValue;\
     }
