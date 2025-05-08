@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sort.h"
 #include <stdint.h>
 
 #define concat(x, y) x ## y
@@ -40,138 +39,178 @@
     }
 
 #ifdef __INTELLISENSE__
-    #define constructObject(arg1) *internalObjectAllocator(arg1) 
+    #define constructObject(arg1, arg2) {0}
+    #define declareObjectType(type) typedef struct {char *id; type *array; size_t size; size_t (*length)(void); char *(*string)(void); char *stringAllocator; void (*resize)(size_t newArraySize); type *(*at)(size_t index); void (*set)(size_t index, type value); void (*fill)(type value); type (*get)(size_t index); void (*sort)(void); void (*delete)(void);} type##Object;
 #else // prevents IntelliSense from complaining about the GCC-specific macro
-    #define constructObjectInternal(arraySize, identifier) ({\
-        object returnObject = *(internalObjectAllocator(arraySize));\
-        decorate(size_t, lengthFunc, identifier, &returnObject);\
-        decorate(char *, stringFunc, identifier, &returnObject);\
-        decorate_void(deleteFunc, identifier,  &returnObject);\
-        decorate_void(sortFunc, identifier,  &returnObject);\
-        expanded_decorate_void(resizeFunc, identifier, size_t, newArraySize, &returnObject);\
-        expanded_decorate_void(fillFunc, identifier, int, value, &returnObject);\
-        expanded_decorate(int *, atFunc, identifier, size_t, index, &returnObject);\
-        expanded_decorate(int, getFunc, identifier, size_t, index, &returnObject);\
-        double_expanded_decorate_void(setFunc, identifier, size_t, index, int, value, &returnObject);\
+    #define constructObjectInternal(arraySize, type, identifier) ({\
+        type##Object returnObject = *(internalObjectAllocator##type(arraySize));\
+        decorate(size_t, lengthFunc##type, identifier, &returnObject);\
+        decorate(char *, stringFunc##type, identifier, &returnObject);\
+        decorate_void(deleteFunc##type, identifier,  &returnObject);\
+        decorate_void(sortFunc##type, identifier,  &returnObject);\
+        expanded_decorate_void(resizeFunc##type, identifier, size_t, newArraySize, &returnObject);\
+        expanded_decorate_void(fillFunc##type, identifier, type, value, &returnObject);\
+        expanded_decorate(type *, atFunc##type, identifier, size_t, index, &returnObject);\
+        expanded_decorate(type, getFunc##type, identifier, size_t, index, &returnObject);\
+        double_expanded_decorate_void(setFunc##type, identifier, size_t, index, type, value, &returnObject);\
         returnObject.id = strTokenize(identifier);\
-        returnObject.length = expand(concat(lengthFunc, identifier));\
-        returnObject.resize = expand(concat(resizeFunc, identifier));\
-        returnObject.at = expand(concat(atFunc, identifier));\
-        returnObject.get = expand(concat(getFunc, identifier));\
-        returnObject.set = expand(concat(setFunc, identifier));\
-        returnObject.string = expand(concat(stringFunc, identifier));\
-        returnObject.delete = expand(concat(deleteFunc, identifier));\
-        returnObject.sort = expand(concat(sortFunc, identifier));\
-        returnObject.fill = expand(concat(fillFunc, identifier));\
+        returnObject.length = expand(concat(lengthFunc##type, identifier));\
+        returnObject.resize = expand(concat(resizeFunc##type, identifier));\
+        returnObject.at = expand(concat(atFunc##type, identifier));\
+        returnObject.get = expand(concat(getFunc##type, identifier));\
+        returnObject.set = expand(concat(setFunc##type, identifier));\
+        returnObject.string = expand(concat(stringFunc##type, identifier));\
+        returnObject.delete = expand(concat(deleteFunc##type, identifier));\
+        returnObject.sort = expand(concat(sortFunc##type, identifier));\
+        returnObject.fill = expand(concat(fillFunc##type, identifier));\
         returnObject;\
     })
 
-    #define constructObject(arraySize) constructObjectInternal(arraySize, __COUNTER__)
+    #define constructObject(arraySize, type) constructObjectInternal(arraySize, type, __COUNTER__)
+
+    #define declareObjectType(type) \
+    typedef struct type##Object {\
+        char *id;\
+        type *array;\
+        size_t size;\
+        size_t (*length)(void);\
+        char *(*string)(void);\
+        char *stringAllocator;\
+        void (*resize)(size_t newArraySize);\
+        type *(*at)(size_t index);\
+        void (*set)(size_t index, type value);\
+        void (*fill)(type value);\
+        type (*get)(size_t index);\
+        void (*sort)(void);\
+        void (*delete)(void);\
+    } type##Object;\
+    \
+    size_t lengthFunc##type(type##Object *self) {\
+        return self -> size;\
+    }\
+    \
+    void resizeFunc##type(type##Object *self, size_t newArraySize) {\
+        self -> size = newArraySize;\
+        self -> array = (type *)realloc(self -> array, newArraySize * sizeof(type));\
+        return;\
+    }\
+    \
+    type *atFunc##type(type##Object *self, size_t index) {\
+        if (index >= self -> size) {\
+            fprintf(stderr, "Index out of bounds. Terminating");\
+            exit(1);\
+        }\
+        return self -> array + index;\
+    }\
+    \
+    type getFunc##type(type##Object *self, size_t index) {\
+        return *atFunc##type(self, index);\
+    }\
+    \
+    void setFunc##type(type##Object *self, size_t index, type value) {\
+        *atFunc##type(self, index) = value;\
+        return;\
+    }\
+    \
+    void fillFunc##type(type##Object *self, type value) {\
+        for (size_t i=0; i < self -> length(); i++) {\
+            self -> set(i, value);\
+        }\
+        return;\
+    }\
+    \
+    char *stringFunc##type(type##Object *self) {\
+        if (self -> stringAllocator) {\
+            free(self -> stringAllocator);\
+            self -> stringAllocator = NULL;\
+        }\
+        char *output = (char *)malloc(self -> size * 12 + 4);\
+        output[0] = '\0';\
+        strcat(output, "{");\
+        char buffer[256];\
+        for (size_t i = 0; i < self -> size - 1; i++) {\
+            sprintf(buffer, "%d, ", self -> array[i]);\
+            strcat(output, buffer);\
+        }\
+        sprintf(buffer, "%d}", self -> array[self -> size - 1]);\
+        strcat(output, buffer);\
+        self -> stringAllocator = output;\
+        return output;\
+    }\
+    \
+    void deleteFunc##type(type##Object *self) {\
+        if (self -> stringAllocator) {\
+            free(self -> stringAllocator);\
+        }\
+        free(self);\
+        return;\
+    }\
+    \
+    void merge##type(type *array1, type *array2, size_t size1, size_t size2) {\
+        type *internalArray = (type *)malloc((size1 + size2) * sizeof(type));\
+        size_t array1Index = 0; \
+        size_t array2Index = 0;\
+        size_t totalSize = size1 + size2;\
+        while ((array1Index < size1) && (array2Index < size2)) {\
+            if (array1[array1Index] < array2[array2Index]) {\
+                internalArray[array1Index + array2Index] = array1[array1Index];\
+                array1Index++;\
+            } else {\
+                internalArray[array1Index + array2Index] = array2[array2Index];\
+                array2Index++;\
+            }\
+        }\
+        while (array1Index < (size1)) {\
+            internalArray[array1Index + array2Index] = array1[array1Index];\
+            array1Index++;\
+        }\
+        while (array2Index < (size2)) {\
+            internalArray[array1Index + array2Index] = array2[array2Index];\
+            array2Index++;\
+        }\
+        memcpy(array1, internalArray, totalSize * sizeof(type));\
+        free(internalArray);\
+        return;\
+    }\
+    \
+    size_t partition##type(size_t size) {\
+        return size / 2UL;\
+    }\
+    \
+    void mergeSort##type(type *array1, size_t sizeTotal) {\
+        size_t partition2Index = partition##type(sizeTotal);\
+        type *array2 = array1 + partition2Index;\
+        size_t size1 = partition2Index;\
+        size_t size2 = sizeTotal - partition2Index;\
+        if (sizeTotal <=1) return;\
+        mergeSort##type(array1, size1);\
+        mergeSort##type(array2, size2);\
+        merge##type(array1, array2, size1, size2);\
+        return;\
+    }\
+    \
+    void sortFunc##type(type##Object *self) {\
+        mergeSort##type(self -> array, self -> size);\
+    }\
+    \
+    type##Object *internalObjectAllocator##type(size_t arraySize) {\
+        if (!arraySize) {\
+            fprintf(stderr, "Array size must be positive.\n");\
+            exit(1);\
+        }\
+        type##Object *returnValue = (type##Object *)malloc(sizeof(type##Object));\
+        returnValue -> array = (type *)calloc(arraySize, sizeof(type));\
+        returnValue -> size = arraySize;\
+        returnValue -> stringAllocator = NULL;\
+        return returnValue;\
+    }
 #endif
 
-#define type_size1 int8_t
-#define type_size2 int16_t
-#define type_size4 int32_t
-#define type_size8 int64_t
-
-#define sizeCast(item, size) (type_size##size)item
-#define sizeCastPointer(item, size) (type_size##size *)item
-
-typedef struct object {
-    char *id;
-    int *array;
-    size_t size;
-    size_t (*length)(void);
-    char *(*string)(void);
-    char *stringAllocator;
-    void (*resize)(size_t newArraySize);
-    int *(*at)(size_t index);
-    void (*set)(size_t index, int value);
-    void (*fill)(int value);
-    int (*get)(size_t index);
-    void (*sort)(void);
-    void (*delete)(void);
-} object;
-
-size_t lengthFunc(object *self) {
-    return self -> size;
-}
-
-void resizeFunc(object *self, size_t newArraySize) {
-    self -> size = newArraySize;
-    self -> array = (int *)realloc(self -> array, newArraySize * sizeof(int));
-    return;
-}
-
-int *atFunc(object *self, size_t index) {
-    if (index >= self -> size) {
-        fprintf(stderr, "Index out of bounds. Terminating");
-        exit(1);
-    }
-    return self -> array + index;
-}
-
-int getFunc(object *self, size_t index) {
-    return *atFunc(self, index);
-}
-
-void setFunc(object *self, size_t index, int value) {
-    *atFunc(self, index) = value;
-    return;
-}
-
-void fillFunc(object *self, int value) {
-    for (size_t i=0; i < self -> length(); i++) {
-        self -> set(i, value);
-    }
-    return;
-}
-
-char *stringFunc(object *self) {
-    if (self -> stringAllocator) {
-        free(self -> stringAllocator);
-        self -> stringAllocator = NULL;
-    }
-    char *output = (char *)malloc(self -> size * 12 + 4); // ten digits each, plus comma and space, plus braces and null terminator
-    output[0] = '\0';
-    strcat(output, "{");
-    char buffer[256];
-    for (size_t i = 0; i < self -> size - 1; i++) {
-        sprintf(buffer, "%d, ", self -> array[i]);
-        strcat(output, buffer);
-    }
-    sprintf(buffer, "%d}", self -> array[self -> size - 1]);
-    strcat(output, buffer);
-    self -> stringAllocator = output;
-    return output;
-}
-
-void deleteFunc(object *self) {
-    if (self -> stringAllocator) {
-        free(self -> stringAllocator);
-    }
-    free(self);
-    return;
-}
-
-void sortFunc(object *self) {
-    mergeSort(self -> array, self -> size);
-}
-
-object *internalObjectAllocator(size_t arraySize) {
-    if (!arraySize) {
-        fprintf(stderr, "Array size must be positive.\n");
-        exit(1);
-    }
-    object *returnValue = (object *)malloc(sizeof(object));
-    returnValue -> array = (int *)calloc(arraySize, sizeof(int));
-    returnValue -> size = arraySize;
-    returnValue -> stringAllocator = NULL;
-    return returnValue;
-}
-
 int main() {
-    object myObject = constructObject(10);
+    declareObjectType(char);
+    declareObjectType(int);
+    charObject myObject = constructObject(10, char);
+    intObject myObject2 = constructObject(20, int);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
     myObject.resize(15);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
@@ -180,4 +219,13 @@ int main() {
     myObject.sort();
     printf("Object %s at index 0: %d\n", myObject.id, myObject.get(0));
     printf("%s\n", myObject.string());
+    printf("\n");
+    printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
+    myObject2.resize(30);
+    printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
+    myObject2.fill(24);
+    myObject2.set(3, 800);
+    myObject2.sort();
+    printf("Object %s at index 0: %d\n", myObject2.id, myObject2.get(0));
+    printf("%s\n", myObject2.string());
 }
