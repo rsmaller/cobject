@@ -203,6 +203,10 @@
     }\
     \
     void clearFunc##type(type##Object *self) {\
+        if (self -> stringAllocator) {\
+            free(self -> stringAllocator);\
+            self -> stringAllocator = NULL;\
+        }\
         self -> filledIndex = -1;\
         return;\
     }\
