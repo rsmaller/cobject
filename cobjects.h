@@ -38,18 +38,39 @@
         function(__VA_ARGS__, arg1Name, arg2Name);\
     }
 
+#define TYPESTRUCT(type)\
+    typedef struct type##Object {\
+        char *id;\
+        type *array;\
+        size_t size;\
+        size_t (*length)(void);\
+        char *(*string)(void);\
+        char *stringAllocator;\
+        void (*resize)(size_t newArraySize);\
+        type *(*at)(size_t index);\
+        void (*set)(size_t index, type value);\
+        void (*fill)(type value);\
+        void (*push)(type value);\
+        type (*pop)(void);\
+        type (*get)(size_t index);\
+        void (*sort)(void);\
+        void (*delete)(void);\
+    } type##Object;
+
 #ifdef __INTELLISENSE__
     #define constructObject(arg1, arg2) {0}
-    #define declareObjectType(type) typedef struct {char *id; type *array; size_t size; size_t (*length)(void); char *(*string)(void); char *stringAllocator; void (*resize)(size_t newArraySize); type *(*at)(size_t index); void (*set)(size_t index, type value); void (*fill)(type value); type (*get)(size_t index); void (*sort)(void); void (*delete)(void);} type##Object;
+    #define declareObjectType(type) TYPESTRUCT(type)
 #else // prevents IntelliSense from complaining about the GCC-specific macro
     #define constructObjectInternal(arraySize, type, identifier) ({\
         type##Object returnObject = internalObjectAllocator##type(arraySize);\
         decorate(size_t, lengthFunc##type, identifier, &returnObject);\
+        decorate(type, popFunc##type, identifier, &returnObject);\
         decorate(char *, stringFunc##type, identifier, &returnObject);\
         decorate_void(deleteFunc##type, identifier,  &returnObject);\
         decorate_void(sortFunc##type, identifier,  &returnObject);\
         expanded_decorate_void(resizeFunc##type, identifier, size_t, newArraySize, &returnObject);\
         expanded_decorate_void(fillFunc##type, identifier, type, value, &returnObject);\
+        expanded_decorate_void(pushFunc##type, identifier, type, value, &returnObject);\
         expanded_decorate(type *, atFunc##type, identifier, size_t, index, &returnObject);\
         expanded_decorate(type, getFunc##type, identifier, size_t, index, &returnObject);\
         double_expanded_decorate_void(setFunc##type, identifier, size_t, index, type, value, &returnObject);\
@@ -63,27 +84,15 @@
         returnObject.delete = expand(concat(deleteFunc##type, identifier));\
         returnObject.sort = expand(concat(sortFunc##type, identifier));\
         returnObject.fill = expand(concat(fillFunc##type, identifier));\
+        returnObject.push = expand(concat(pushFunc##type, identifier));\
+        returnObject.pop = expand(concat(popFunc##type, identifier));\
         returnObject;\
     })
 
     #define constructObject(arraySize, type) constructObjectInternal(arraySize, type, __COUNTER__)
 
     #define declareObjectType(type) \
-    typedef struct type##Object {\
-        char *id;\
-        type *array;\
-        size_t size;\
-        size_t (*length)(void);\
-        char *(*string)(void);\
-        char *stringAllocator;\
-        void (*resize)(size_t newArraySize);\
-        type *(*at)(size_t index);\
-        void (*set)(size_t index, type value);\
-        void (*fill)(type value);\
-        type (*get)(size_t index);\
-        void (*sort)(void);\
-        void (*delete)(void);\
-    } type##Object;\
+    TYPESTRUCT(type) \
     \
     size_t lengthFunc##type(type##Object *self) {\
         return self -> size;\
@@ -105,6 +114,21 @@
             exit(1);\
         }\
         return self -> array + index;\
+    }\
+    \
+    void pushFunc##type(type##Object *self, type value) {\
+        self -> size++;\
+        self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        self -> array[self -> size - 1] = value;\
+    }\
+    type popFunc##type(type##Object *self) {\
+        if (!self -> size) {\
+            return 0;\
+        }\
+        type returnValue = self -> array[self -> size - 1];\
+        self -> size--;\
+        self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        return returnValue;\
     }\
     \
     type getFunc##type(type##Object *self, size_t index) {\

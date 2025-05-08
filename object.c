@@ -20,6 +20,11 @@ int main() {
     myObject2.fill(97);
     myObject2.set(3, 99);
     myObject2.sort();
-    printf("Object %s at index 0: %d\n", myObject2.id, myObject2.get(0));
+    printf("\n");
+    printf("%s\n", myObject2.string());
+    printf("Pushing x\n");
+    myObject2.push('x');
+    printf("%s\n", myObject2.string());
+    printf("Popping value: %c\n", myObject2.pop());
     printf("%s\n", myObject2.string());
 }
