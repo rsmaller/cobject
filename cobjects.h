@@ -90,6 +90,10 @@
     }\
     \
     void resizeFunc##type(type##Object *self, size_t newArraySize) {\
+        if (newArraySize == 0) {\
+            fprintf(stderr, "Invalid size factor. Terminating");\
+            exit(1);\
+        }\
         self -> size = newArraySize;\
         self -> array = (type *)realloc(self -> array, newArraySize * sizeof(type));\
         return;\
