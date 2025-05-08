@@ -56,6 +56,7 @@
         type (*get)(size_t index);\
         void (*sort)(void);\
         void (*delete)(void);\
+        void (*clear)(void);\
     } type##Object;
 
 #ifdef __INTELLISENSE__
@@ -68,6 +69,7 @@
         decorate(type, popFunc##type, identifier, &returnObject);\
         decorate(char *, stringFunc##type, identifier, &returnObject);\
         decorate_void(deleteFunc##type, identifier,  &returnObject);\
+        decorate_void(clearFunc##type, identifier,  &returnObject);\
         decorate_void(sortFunc##type, identifier,  &returnObject);\
         expanded_decorate_void(fillFunc##type, identifier, type, value, &returnObject);\
         expanded_decorate_void(pushFunc##type, identifier, type, value, &returnObject);\
@@ -81,6 +83,7 @@
         returnObject.set = expand(concat(setFunc##type, identifier));\
         returnObject.string = expand(concat(stringFunc##type, identifier));\
         returnObject.delete = expand(concat(deleteFunc##type, identifier));\
+        returnObject.clear = expand(concat(clearFunc##type, identifier));\
         returnObject.sort = expand(concat(sortFunc##type, identifier));\
         returnObject.fill = expand(concat(fillFunc##type, identifier));\
         returnObject.push = expand(concat(pushFunc##type, identifier));\
@@ -146,6 +149,13 @@
     }\
     \
     char *stringFunc##type(type##Object *self) {\
+        if (self -> filledIndex < 0) {\
+            char *returnValue = (char *)malloc(3 * sizeof(char));\
+            returnValue[0] = '{';\
+            returnValue[1] = '}';\
+            returnValue[2] = '\0';\
+            return returnValue;\
+        }\
         char *startFormatter;\
         char *endFormatter;\
         if (sizeof(type) == 1) {\
@@ -181,6 +191,11 @@
             free(self -> stringAllocator);\
         }\
         free(self);\
+        return;\
+    }\
+    \
+    void clearFunc##type(type##Object *self) {\
+        self -> filledIndex = -1;\
         return;\
     }\
     \

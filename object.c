@@ -11,4 +11,10 @@ int main() {
     printf("Object %s after pushing: %s\n", myObject.id, myObject.string());
     myObject.sort();
     printf("Object %s after sort: %s\n", myObject.id, myObject.string());
+    myObject.clear();
+    printf("Object %s after clear: %s\n", myObject.id, myObject.string());
+    myObject.push(30);
+    printf("Object %s after pushing: %s\n", myObject.id, myObject.string());
+    myObject.push(30);
+    printf("Object %s after pushing: %s\n", myObject.id, myObject.string());
 }
