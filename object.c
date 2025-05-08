@@ -43,7 +43,7 @@
     #define declareObjectType(type) typedef struct {char *id; type *array; size_t size; size_t (*length)(void); char *(*string)(void); char *stringAllocator; void (*resize)(size_t newArraySize); type *(*at)(size_t index); void (*set)(size_t index, type value); void (*fill)(type value); type (*get)(size_t index); void (*sort)(void); void (*delete)(void);} type##Object;
 #else // prevents IntelliSense from complaining about the GCC-specific macro
     #define constructObjectInternal(arraySize, type, identifier) ({\
-        type##Object returnObject = *(internalObjectAllocator##type(arraySize));\
+        type##Object returnObject = internalObjectAllocator##type(arraySize);\
         decorate(size_t, lengthFunc##type, identifier, &returnObject);\
         decorate(char *, stringFunc##type, identifier, &returnObject);\
         decorate_void(deleteFunc##type, identifier,  &returnObject);\
@@ -205,15 +205,15 @@
         mergeSort##type(self -> array, self -> size);\
     }\
     \
-    type##Object *internalObjectAllocator##type(size_t arraySize) {\
+    type##Object internalObjectAllocator##type(size_t arraySize) {\
         if (!arraySize) {\
             fprintf(stderr, "Array size must be positive.\n");\
             exit(1);\
         }\
-        type##Object *returnValue = (type##Object *)malloc(sizeof(type##Object));\
-        returnValue -> array = (type *)calloc(arraySize, sizeof(type));\
-        returnValue -> size = arraySize;\
-        returnValue -> stringAllocator = NULL;\
+        type##Object returnValue;\
+        returnValue.array = (type *)calloc(arraySize, sizeof(type));\
+        returnValue.size = arraySize;\
+        returnValue.stringAllocator = NULL;\
         return returnValue;\
     }
 #endif
