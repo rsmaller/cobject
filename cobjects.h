@@ -42,7 +42,7 @@
     typedef struct type##Object {\
         char *id;\
         type *array;\
-        size_t size;\
+        size_t capacity;\
         int filledIndex;\
         size_t (*length)(void);\
         char *(*string)(void);\
@@ -101,7 +101,7 @@
     }\
     \
     type *atFunc##type(type##Object *self, size_t index) {\
-        if (index >= self -> size) {\
+        if (index >= self -> capacity) {\
             fprintf(stderr, "Index out of bounds. Terminating");\
             exit(1);\
         }\
@@ -111,9 +111,13 @@
     void pushFunc##type(type##Object *self, type value) {\
         self -> filledIndex++;\
         self -> array[self -> length() - 1] = value;\
-        if (self -> filledIndex >= self -> size / 2) {\
-            self -> size *= 2;\
-            self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        if (self -> filledIndex >= self -> capacity / 2) {\
+            self -> capacity *= 2;\
+            self -> array = (type *)realloc(self -> array, self -> capacity * sizeof(type));\
+            if (!self -> array) {\
+                fprintf(stderr, "Object reallocation failure. Terminating\n");\
+                exit(1);\
+            }\
         }\
     }\
     type popFunc##type(type##Object *self) {\
@@ -134,9 +138,13 @@
         if (index > self -> filledIndex) {\
             self -> filledIndex = index;\
         }\
-        if (self -> filledIndex >= self -> size / 2) {\
-            self -> size *= 2;\
-            self -> array = (type *)realloc(self -> array, self -> size * sizeof(type));\
+        if (self -> filledIndex >= self -> capacity / 2) {\
+            self -> capacity *= 2;\
+            self -> array = (type *)realloc(self -> array, self -> capacity * sizeof(type));\
+            if (!self -> array) {\
+                fprintf(stderr, "Object reallocation failure. Terminating\n");\
+                exit(1);\
+            }\
         }\
         return;\
     }\
@@ -201,6 +209,10 @@
     \
     void merge##type(type *array1, type *array2, size_t size1, size_t size2) {\
         type *internalArray = (type *)malloc((size1 + size2) * sizeof(type));\
+        if (!internalArray) {\
+            fprintf(stderr, "Merge sort allocation failure. Terminating\n");\
+            exit(1);\
+        }\
         size_t array1Index = 0; \
         size_t array2Index = 0;\
         size_t totalSize = size1 + size2;\
@@ -243,6 +255,7 @@
     }\
     \
     void sortFunc##type(type##Object *self) {\
+        /* Applies only to filled data. */\
         mergeSort##type(self -> array, self -> length());\
     }\
     \
@@ -255,7 +268,11 @@
         }\
         type##Object returnValue;\
         returnValue.array = (type *)calloc(arraySize, sizeof(type));\
-        returnValue.size = arraySize;\
+        if (!returnValue.array) {\
+            fprintf(stderr, "Object construction failure. Terminating\n");\
+            exit(1);\
+        }\
+        returnValue.capacity = arraySize;\
         returnValue.filledIndex = -1;\
         returnValue.stringAllocator = NULL;\
         return returnValue;\
