@@ -120,6 +120,18 @@
     }\
     \
     char *stringFunc##type(type##Object *self) {\
+        char *startFormatter;\
+        char *endFormatter;\
+        if (sizeof(type) == 1) {\
+            startFormatter = "%c, ";\
+            endFormatter = "%c}";\
+        } else if ((type)0 - 1 > 0) {\
+            startFormatter = "%llu, ";\
+            endFormatter = "%llu}";\
+        } else {\
+            startFormatter = "%lld, ";\
+            endFormatter = "%lld}";\
+        }\
         if (self -> stringAllocator) {\
             free(self -> stringAllocator);\
             self -> stringAllocator = NULL;\
@@ -129,10 +141,10 @@
         strcat(output, "{");\
         char buffer[256];\
         for (size_t i = 0; i < self -> size - 1; i++) {\
-            sprintf(buffer, "%d, ", self -> array[i]);\
+            sprintf(buffer, startFormatter, self -> array[i]);\
             strcat(output, buffer);\
         }\
-        sprintf(buffer, "%d}", self -> array[self -> size - 1]);\
+        sprintf(buffer, endFormatter, self -> array[self -> size - 1]);\
         strcat(output, buffer);\
         self -> stringAllocator = output;\
         return output;\
@@ -208,9 +220,9 @@
 
 int main() {
     declareObjectType(char);
-    declareObjectType(int);
-    charObject myObject = constructObject(10, char);
-    intObject myObject2 = constructObject(20, int);
+    declareObjectType(uint32_t);
+    uint32_tObject myObject = constructObject(10, uint32_t);
+    charObject myObject2 = constructObject(20, char);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
     myObject.resize(15);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
@@ -223,8 +235,8 @@ int main() {
     printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
     myObject2.resize(30);
     printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
-    myObject2.fill(24);
-    myObject2.set(3, 800);
+    myObject2.fill(97);
+    myObject2.set(3, 99);
     myObject2.sort();
     printf("Object %s at index 0: %d\n", myObject2.id, myObject2.get(0));
     printf("%s\n", myObject2.string());
