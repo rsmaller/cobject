@@ -2,7 +2,7 @@
 
 int main() {
     declareObjectType(uint32_t);
-    uint32_tObject myObject = constructObject(10, uint32_t);
+    uint32_tObject myObject = _Object(10, uint32_t);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
     myObject.push(15);
     myObject.push(200);

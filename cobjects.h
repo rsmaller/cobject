@@ -60,7 +60,7 @@
     } type##Object;
 
 #ifdef __INTELLISENSE__
-    #define constructObject(arg1, arg2) {0}
+    #define _Object(arg1, arg2) {0}
     #define declareObjectType(type) TYPESTRUCT(type)
 #else // prevents IntelliSense from complaining about the GCC-specific macro
     #define constructObjectInternal(arraySize, type, identifier) ({\
@@ -91,7 +91,7 @@
         returnObject;\
     })
 
-    #define constructObject(arraySize, type) constructObjectInternal(arraySize, type, __COUNTER__)
+    #define _Object(arraySize, type) constructObjectInternal(arraySize, type, __COUNTER__)
 
     #define declareObjectType(type) \
     TYPESTRUCT(type) \
