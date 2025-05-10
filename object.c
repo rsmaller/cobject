@@ -18,4 +18,5 @@ int main() {
     myObject.push(30);
     printf("Object %s after pushing: %s\n", myObject.id, myObject.string());
     myObject.delete();
+    return 0;
 }

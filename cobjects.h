@@ -39,7 +39,7 @@
     }
 
 #define TYPESTRUCT(type)\
-    typedef struct type##Object {\
+    typedef struct type##Object_Internal {\
         char *id;\
         type *array;\
         size_t capacity;\
@@ -57,14 +57,34 @@
         void (*sort)(void);\
         void (*delete)(void);\
         void (*clear)(void);\
-    } type##Object;
+    } type##Object_Internal;\
+\
+    typedef struct type##Object {\
+        char const * const id;\
+        type *array;\
+        size_t capacity;\
+        int filledIndex;\
+        size_t (* const length)(void);\
+        char *(* const string)(void);\
+        char *stringAllocator;\
+        void (* const resize)(size_t newArraySize);\
+        type *(* const at)(size_t index);\
+        void (* const set)(size_t index, type value);\
+        void (* const fill)(type value);\
+        void (* const push)(type value);\
+        type (* const pop)(void);\
+        type (* const get)(size_t index);\
+        void (* const sort)(void);\
+        void (* const delete)(void);\
+        void (* const clear)(void);\
+    } type##Object;\
 
 #ifdef __INTELLISENSE__
     #define _Object(arg1, arg2) {0}
     #define declareObjectType(type) TYPESTRUCT(type)
 #else // prevents IntelliSense from complaining about the GCC-specific macro
     #define constructObjectInternal(arraySize, type, identifier) ({\
-        type##Object returnObject = internalObjectAllocator##type(arraySize);\
+        type##Object_Internal returnObject = internalObjectAllocator##type(arraySize);\
         decorate(size_t, lengthFunc##type, identifier, &returnObject);\
         decorate(type, popFunc##type, identifier, &returnObject);\
         decorate(char *, stringFunc##type, identifier, &returnObject);\
@@ -88,7 +108,8 @@
         returnObject.fill = expand(concat(fillFunc##type, identifier));\
         returnObject.push = expand(concat(pushFunc##type, identifier));\
         returnObject.pop = expand(concat(popFunc##type, identifier));\
-        returnObject;\
+        type##Object castedReturnObject = *(type##Object *)&returnObject;\
+        castedReturnObject;\
     })
 
     #define _Object(arraySize, type) constructObjectInternal(arraySize, type, __COUNTER__)
@@ -96,11 +117,11 @@
     #define declareObjectType(type) \
     TYPESTRUCT(type) \
     \
-    size_t lengthFunc##type(type##Object *self) {\
+    size_t lengthFunc##type(type##Object_Internal *self) {\
         return self -> filledIndex + 1;\
     }\
     \
-    type *atFunc##type(type##Object *self, size_t index) {\
+    type *atFunc##type(type##Object_Internal *self, size_t index) {\
         if (index >= self -> capacity) {\
             fprintf(stderr, "Index out of bounds. Terminating");\
             exit(1);\
@@ -108,7 +129,7 @@
         return self -> array + index;\
     }\
     \
-    void pushFunc##type(type##Object *self, type value) {\
+    void pushFunc##type(type##Object_Internal *self, type value) {\
         self -> filledIndex++;\
         self -> array[self -> length() - 1] = value;\
         if (self -> filledIndex >= self -> capacity / 2) {\
@@ -120,7 +141,7 @@
             }\
         }\
     }\
-    type popFunc##type(type##Object *self) {\
+    type popFunc##type(type##Object_Internal *self) {\
         if (self -> filledIndex < 0) {\
             return 0;\
         }\
@@ -129,11 +150,11 @@
         return returnValue;\
     }\
     \
-    type getFunc##type(type##Object *self, size_t index) {\
+    type getFunc##type(type##Object_Internal *self, size_t index) {\
         return *atFunc##type(self, index);\
     }\
     \
-    void setFunc##type(type##Object *self, size_t index, type value) {\
+    void setFunc##type(type##Object_Internal *self, size_t index, type value) {\
         *atFunc##type(self, index) = value;\
         if (index > self -> filledIndex) {\
             self -> filledIndex = index;\
@@ -149,14 +170,14 @@
         return;\
     }\
     \
-    void fillFunc##type(type##Object *self, type value) {\
+    void fillFunc##type(type##Object_Internal *self, type value) {\
         for (size_t i=0; i < self -> length(); i++) {\
             self -> set(i, value);\
         }\
         return;\
     }\
     \
-    char *stringFunc##type(type##Object *self) {\
+    char *stringFunc##type(type##Object_Internal *self) {\
         if (self -> filledIndex < 0) {\
             char *returnValue = (char *)malloc(3 * sizeof(char));\
             returnValue[0] = '{';\
@@ -194,15 +215,14 @@
         return output;\
     }\
     \
-    void deleteFunc##type(type##Object *self) {\
+    void deleteFunc##type(type##Object_Internal *self) {\
         if (self -> stringAllocator) {\
             free(self -> stringAllocator);\
         }\
-        free(self);\
         return;\
     }\
     \
-    void clearFunc##type(type##Object *self) {\
+    void clearFunc##type(type##Object_Internal *self) {\
         if (self -> stringAllocator) {\
             free(self -> stringAllocator);\
             self -> stringAllocator = NULL;\
@@ -258,19 +278,19 @@
         return;\
     }\
     \
-    void sortFunc##type(type##Object *self) {\
+    void sortFunc##type(type##Object_Internal *self) {\
         /* Applies only to filled data. */\
         mergeSort##type(self -> array, self -> length());\
     }\
     \
-    type##Object internalObjectAllocator##type(size_t arraySize) {\
+    type##Object_Internal internalObjectAllocator##type(size_t arraySize) {\
         if (!arraySize) {\
             fprintf(stderr, "Array size must be positive.\n");\
             exit(1);\
         } else if (arraySize < 4) {\
             arraySize = 4;\
         }\
-        type##Object returnValue;\
+        type##Object_Internal returnValue;\
         returnValue.array = (type *)calloc(arraySize, sizeof(type));\
         if (!returnValue.array) {\
             fprintf(stderr, "Object construction failure. Terminating\n");\
