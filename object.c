@@ -1,8 +1,9 @@
 #include "cobjects.h"
 
 int main() {
-    declareObjectType(uint32_t);
-    uint32_tObject myObject = _Object(10, uint32_t);
+    typedef unsigned int uint;
+    declareObjectType(uint);
+    uintObject myObject = _Object(10, uint);
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
     myObject.push(15);
     myObject.push(200);
