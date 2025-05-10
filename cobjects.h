@@ -13,6 +13,16 @@
 
 #define expand(x) x
 
+#define to ;
+
+#define method .
+
+#define attribute .
+
+#define done ;
+
+#define print printf
+
 #define decorate(returntype, function, identifier, ...)\
     returntype expand(concat(function, identifier)) (void) {\
         return function(__VA_ARGS__);\
