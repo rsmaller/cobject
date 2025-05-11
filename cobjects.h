@@ -56,9 +56,9 @@
         type *array;\
         size_t capacity;\
         int filledIndex;\
+        char *stringAllocator;\
         size_t (*length)(void);\
         char *(*string)(void);\
-        char *stringAllocator;\
         void (*resize)(size_t newArraySize);\
         type *(*at)(size_t index);\
         void (*set)(size_t index, type value);\
@@ -76,9 +76,9 @@
         type *array;\
         size_t capacity;\
         int filledIndex;\
+        char *stringAllocator;\
         size_t (* const length)(void);\
         char *(* const string)(void);\
-        char *stringAllocator;\
         void (* const resize)(size_t newArraySize);\
         type *(* const at)(size_t index);\
         void (* const set)(size_t index, type value);\
