@@ -5,7 +5,9 @@ int main() {
     typedef int* intPtr to declareObjectType(intPtr);
     declareObjectType(int);
     intObject myObject = _Object(10, int);
+
     printf("Object %s size: %llu\n", myObject.id, myObject.length());
+    printf("Object %s type: %s\n", myObject.id, myObject.internalType);
     myObject.push(x[0]);
     myObject.push(x[1]);
     myObject.push(x[2]);
@@ -24,6 +26,7 @@ int main() {
 
     intPtrObject myObject2 = _Object(10, intPtr);
     printf("Object %s size: %llu\n", myObject2.id, myObject2.length());
+    printf("Object %s type: %s\n", myObject2.id, myObject2.internalType);
     myObject2.push(x);
     myObject2.push(x+1);
     myObject2.push(x+2);

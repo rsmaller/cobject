@@ -53,6 +53,7 @@
 #define TYPESTRUCT(type)\
     typedef struct type##Object_Internal {\
         char *id;\
+        char *internalType;\
         type *array;\
         size_t capacity;\
         int filledIndex;\
@@ -73,6 +74,7 @@
 \
     typedef struct type##Object {\
         char const * const id;\
+        char const * const internalType;\
         type *array;\
         size_t capacity;\
         int filledIndex;\
@@ -117,6 +119,7 @@
         .filledIndex        = -1,\
         .stringAllocator    = NULL,\
         .id                 = strTokenize(identifier),\
+        .internalType       = strTokenize(type),\
         .length             = expand(concat(lengthFunc##type, identifier)),\
         .at                 = expand(concat(atFunc##type, identifier)),\
         .get                = expand(concat(getFunc##type, identifier)),\
@@ -166,6 +169,7 @@
             }\
         }\
     }\
+    \
     type popFunc##type(type##Object_Internal *self) {\
         if (self -> filledIndex < 0) {\
             return 0;\
@@ -316,8 +320,8 @@
         mergeSort##type(self -> array, self -> length());\
     }\
 
-
-#ifdef __INTELLISENSE__ // prevents IntelliSense from complaining about the GCC-specific macro
+// prevents IntelliSense from complaining about the GCC-specific macro
+#ifdef __INTELLISENSE__ 
     #define _Object(arg1, arg2) {0}
     #define declareObjectType(type) TYPESTRUCT(type)
 #endif
