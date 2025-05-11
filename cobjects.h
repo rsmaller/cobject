@@ -13,6 +13,8 @@
 
 #define expand(x) x
 
+#define isPointer(x) __builtin_classify_type(x) == 5
+
 #define to ;
 
 #define method .
@@ -210,7 +212,15 @@
         }\
         char *startFormatter;\
         char *endFormatter;\
-        if (sizeof(type) == 1) {\
+        if (isPointer(type)) {\
+            if (sizeof(type) == 8) {\
+                startFormatter = "0x%llx, ";\
+                endFormatter = "0x%llx}";\
+            } else {\
+                startFormatter = "0x%x, ";\
+                endFormatter = "0x%x}";\
+            }\
+        } else if (sizeof(type) == 1) {\
             startFormatter = "%c, ";\
             endFormatter = "%c}";\
         } else if ((type)0 - 1 > 0) {\
@@ -224,7 +234,7 @@
             free(self -> stringAllocator);\
             self -> stringAllocator = NULL;\
         }\
-        char *output = (char *)malloc(self -> length() * 12 + 4);\
+        char *output = (char *)malloc(self -> length() * 12 + 10);\
         output[0] = '\0';\
         strcat(output, "{");\
         char buffer[256];\
