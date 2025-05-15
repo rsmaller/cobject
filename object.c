@@ -21,7 +21,7 @@ int main() {
     myObject.push(x[3]);
     printf("Object %s after pushing 4th element: %s\n", myObject.id, myObject.string());
     myObject.push(x[4]);
-    printf("Object %s after pushing 5sth element: %s\n", myObject.id, myObject.string());
+    printf("Object %s after pushing 5th element: %s\n", myObject.id, myObject.string());
     myObject.delete();
     printf("\n\n");
 
