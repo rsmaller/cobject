@@ -7,13 +7,14 @@
 #include <string.h>
 #include <stdint.h>
 
+
 #define concat(x, y) x ## y
 
 #define strTokenize(x) # x
 
 #define expand(x) x
 
-#define isPointer(x) __builtin_classify_type(x) == 5
+#define isPointer(x) __builtin_classify_type((x)0) == 5
 
 #define to ;
 
@@ -54,6 +55,7 @@
     typedef struct type##Object_Internal {\
         char *id;\
         char *internalType;\
+        int builtinType;\
         type *array;\
         size_t capacity;\
         int filledIndex;\
@@ -75,6 +77,7 @@
     typedef struct type##Object {\
         char const * const id;\
         char const * const internalType;\
+        const int builtinType;\
         type *array;\
         size_t capacity;\
         int filledIndex;\
@@ -120,6 +123,7 @@
         .stringAllocator    = NULL,\
         .id                 = strTokenize(identifier),\
         .internalType       = strTokenize(type),\
+        .builtinType        = __builtin_classify_type((type)0),\
         .length             = expand(concat(lengthFunc##type, identifier)),\
         .at                 = expand(concat(atFunc##type, identifier)),\
         .get                = expand(concat(getFunc##type, identifier)),\
