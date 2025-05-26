@@ -222,11 +222,11 @@
         char *endFormatter;\
         if (isPointer(type)) {\
             if (sizeof(type) == 8) {\
-                startFormatter = "0x%llx, ";\
-                endFormatter = "0x%llx}";\
+                startFormatter = "%#llx, ";\
+                endFormatter = "%#llx}";\
             } else {\
-                startFormatter = "0x%x, ";\
-                endFormatter = "0x%x}";\
+                startFormatter = "%#x, ";\
+                endFormatter = "%#x}";\
             }\
         } else if (sizeof(type) == 1) {\
             startFormatter = "%c, ";\
