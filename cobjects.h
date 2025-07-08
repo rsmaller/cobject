@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 
 #define concat(x, y) x ## y
@@ -221,13 +222,8 @@
         char *startFormatter;\
         char *endFormatter;\
         if (isPointer(type)) {\
-            if (sizeof(type) == 8) {\
-                startFormatter = "%#llx, ";\
-                endFormatter = "%#llx}";\
-            } else {\
-                startFormatter = "%#x, ";\
-                endFormatter = "%#x}";\
-            }\
+            startFormatter = "0x%" PRIxPTR ", ";\
+            endFormatter = "0x%" PRIxPTR "}";\
         } else if (sizeof(type) == 1) {\
             startFormatter = "%c, ";\
             endFormatter = "%c}";\
